@@ -3,7 +3,7 @@ followed by 'make clean' to remove the remaining object files.
 
 The program inputs are:
 
-    runtime_scanner [-p project_path] [g grep_file_path] [-i] [-h] [-o]
+    runtime_scanner [-p project_path] [-g grep_file_path] [-i] [-h] [-o]
 
 These are expanded upon using the --help or -? flags
 
