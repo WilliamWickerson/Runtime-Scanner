@@ -48,6 +48,8 @@ int main(int argc, char** argv) {
     bool printHardcode = false;
     bool printInput = false;
     bool printOther = false;
+    //Boolean to skip test files
+    bool skipTest = false;
     //Look through command line arguments
     for (int i = 1; i < argc; i++) {
         //-p [project path] gets the search path
@@ -70,6 +72,10 @@ int main(int argc, char** argv) {
         if (!strcmp(argv[i], "-o")) {
             printOther = true;
         }
+        //-t skip test files
+        if (!strcmp(argv[i], "-t")) {
+            skipTest = true;
+        }
         //--help and -? show how to use runtime_scanner
         if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-?")) {
             std::cout << "\t-p [project path] | root folder of grep search" << std::endl;
@@ -77,6 +83,7 @@ int main(int argc, char** argv) {
             std::cout << "\t-h | display hardcoded uses" << std::endl;
             std::cout << "\t-i | display uses with function input" << std::endl;
             std::cout << "\t-o | display other uses" << std::endl;
+            std::cout << "\t-t | skip test files" << std::endl;
         }
     }
     
@@ -113,12 +120,6 @@ int main(int argc, char** argv) {
     std::vector<std::string> inputUses;
     std::vector<std::string> otherUses;
     
-    //JavaReader jr(projectPath + "/" + "frameworks/testing/uiautomator_test_libraries/src/com/android/uiautomator/platform/SurfaceFlingerHelper.java");    
-    //for (std::string s : jr.readFunctionNames())
-    //    std::cout << s << std::endl;
-    
-    //return 0;
-    
     //Iterate through all of the pairs in the grep map
     for (auto const& file : fileLines) {
         //file.first is the file path
@@ -130,8 +131,11 @@ int main(int argc, char** argv) {
         //Open up a new JavaParser for the current file
         JavaParser jp(projectPath + "/" + file.first);
         //Count the number of files and file paths containing "test"
-        if (Util::regexFind(file.first, "[tT][eE][sS][tT]") != std::string::npos)
+        if (Util::regexFind(file.first, "[tT][eE][sS][tT]") != std::string::npos) {
+            if (skipTest)
+                continue;
             testFileCount += 1;
+        }
         //Iterate through the list of target lines
         for (int lineNo : file.second) {
             //Get the full line up to the semicolon
@@ -230,9 +234,11 @@ int main(int argc, char** argv) {
     std::cout << inputFunctionCount << " from function input, ";
     std::cout << (runtimeFunctionCount - hardcodedFunctionCount - inputFunctionCount);
     std::cout << " other" << std::endl;
-    //Print the number of "test" files
-    std::cout << testFileCount << "/" << totalFileCount;
-    std::cout << " file paths contain \"test\"" << std::endl;
+    //Print the number of "test" files if they weren't skipped
+    if (!skipTest) {
+        std::cout << testFileCount << "/" << totalFileCount;
+        std::cout << " file paths contain \"test\"" << std::endl;
+    }
     //Print header for the function table
     std::cout << "\nExec Input Table\n" << std::endl;
     //Print all of the types, their total/hardcoded/input count
