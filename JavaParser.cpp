@@ -174,6 +174,17 @@ bool JavaParser::isHardcoded(const std::string& variableName, const std::string&
             //If the string is given a literal return true
             if (Util::regexFind(functionBody, Util::escapeRegex(variableName) + " *= *\".*\"") != std::string::npos)
                 return true;
+            //Check for for loop since otherwise isHardcoded and parseRecursive can loop back and forth
+            if (Util::regexFind(functionBody, Util::escapeRegex(variableName) + " *:") != std::string::npos) {
+                int pos = Util::regexFind(functionBody, Util::escapeRegex(variableName) + " *:");
+                int start = functionBody.find(":", pos) + 1;
+                int end = functionBody.find("\n");
+                std::string temp = functionBody.substr(start, end - start);
+                start = temp.find_first_not_of(" ");
+                end = temp.find_last_of(")");
+                temp = temp.substr(start, end - start);
+                return this->isHardcoded(Util::trim(temp), functionName);
+            }          
             //Otherwise check the input
             int decStart = functionBody.find("=", location) + 1;
             int decEnd = functionBody.find(";", location);

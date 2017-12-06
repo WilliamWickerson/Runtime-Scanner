@@ -37,7 +37,7 @@
 
 JavaReader::JavaReader(const std::string& filePath) : 
         fileStream(std::ifstream(filePath)),
-        functions(std::map<std::string, std::pair<int,int>>()) {
+        functions(std::map<std::string, std::vector<std::pair<int,int>>>()) {
     //Keep track of file position and nesting depth
     int blockDepth = 0;
     int lineNumber = 0;
@@ -70,9 +70,9 @@ JavaReader::JavaReader(const std::string& filePath) :
         if (blockDepth == internalClassDepth) {
             //Search for function definitions using regex
             //"(public|private|protected )", functions should start with a modifier
-            //"[^=]+" covers any return type and modifiers, and avoids variables
-            //"\\w+\\(" should capture the function name, with the '(' being the tell
-            if (Util::regexFind(line, "(public|private|protected)?[^=]+\\w+\\(")
+            //"[^=\\.]+" covers any return type and modifiers, and avoids variables
+            //" \\w+\\(" should capture the function name, with the '(' being the tell
+            if (Util::regexFind(line, "(public|private|protected)?[^=\\.]* \\w+\\(")
                     != std::string::npos) {
                 functionStart = lineNumber;
                 int nameEnd = line.find("(");
@@ -80,15 +80,22 @@ JavaReader::JavaReader(const std::string& filePath) :
                 currentFunctionName = line.substr(nameStart, nameEnd - nameStart);
             }
         }
+        int nextBlockDepth = blockDepth;
         //Get the new block depth after the current line
-        int nextBlockDepth = blockDepth + std::count(line.begin(), line.end(), '{')
-            - std::count(line.begin(), line.end(), '}');
+        std::string trimmed = Util::trim(line);
+        if (!Util::startsWith(trimmed, "*") && !Util::startsWith(trimmed, "//"))
+            nextBlockDepth = blockDepth + std::count(line.begin(), line.end(), '{')
+                    - std::count(line.begin(), line.end(), '}');
         //If a function ended, since the block depth decreased
         if ((blockDepth > internalClassDepth) && (nextBlockDepth <= internalClassDepth)) {
-            if (currentFunctionName.compare("") && !this->functions.count(currentFunctionName)) {
+            if (currentFunctionName.compare("")) {
+                //Create a new std::vector<std:pair<int,int>> just in case
+                std::vector<std::pair<int,int>> update;
+                if (this->functions.count(currentFunctionName))
+                    update = this->functions[currentFunctionName];
                 //Add this function to the map with its and end
-                this->functions[currentFunctionName] =
-                    std::pair<int,int>(functionStart, lineNumber);
+                update.push_back(std::pair<int,int>(functionStart, lineNumber));
+                this->functions[currentFunctionName] = update;
                 currentFunctionName = "";
             }
         }
@@ -134,20 +141,28 @@ std::string JavaReader::readFunction(int lineNumber) {
 }
     
 std::string JavaReader::readFunction(const std::string& functionName) {
-    //If function name is not in functions, return nullptr
+    //If function name is not in functions, return empty string
     if (!this->functions.count(functionName))
         return std::string();
-    //Read the lines specified by the function's bounds
-    return this->readLines(this->functions[functionName]);
+    //Read through the functions for a .exec( and return that
+    for (const std::pair<int,int>& p : this->functions[functionName]) {
+        if (this->readLines(p).find(".exec(") != std::string::npos)
+            return this->readLines(p);
+    }
+    //If not just return the first option
+    return this->readLines(this->functions[functionName][0]);
 }
 
 std::string JavaReader::readFunctionName(int lineNumber) {
     //Find the function lineNumber is contained in
-    for (auto const& x : this->functions) {
-        //x.first is the function name
-        //x.second is the pair (start,end)
-        if ((lineNumber >= x.second.first) && (lineNumber <= x.second.second))
-            return x.first;
+    for (auto const& v : this->functions) {
+        //v.first is the function name
+        //v.second is the vector of pairs (start,end)
+        for (auto const& p : v.second)
+            //p.first is the first in the pair
+            //p.second is the second in the pair
+            if ((lineNumber >= p.first) && (lineNumber <= p.second))
+                return v.first;
     }
     //Otherwise return empty string if there is none
     return std::string();
@@ -178,6 +193,11 @@ std::pair<int,int> JavaReader::getFunctionBounds(const std::string& functionName
     //If function name is not in functions, return -1
     if (!this->functions.count(functionName))
         return std::pair<int,int>(-1,-1);
-    //Return the function bounds
-    return this->functions[functionName];
+    //Read through the functions for a .exec( and return that
+    for (const std::pair<int,int>& p : this->functions[functionName]) {
+        if (this->readLines(p).find(".exec(") != std::string::npos)
+            return p;
+    }
+    //If not just return the first option
+    return this->functions[functionName][0];
 }

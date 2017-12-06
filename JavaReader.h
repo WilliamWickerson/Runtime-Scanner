@@ -50,7 +50,7 @@ public:
 private:
     std::ifstream fileStream;
     std::string className;
-    std::map<std::string, std::pair<int,int>> functions;
+    std::map<std::string, std::vector<std::pair<int,int>>> functions;
 };
 
 #endif /* JAVAREADER_H */

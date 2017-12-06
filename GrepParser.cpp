@@ -64,7 +64,7 @@ std::map<std::string, std::vector<int>> GrepParser::parseInput() {
         //Parse the number and convert it to an integer
         std::string lineString = line.substr(firstColon+1, secondColon-firstColon);
         int lineNumber = stoi(lineString);
-        //If file path is not in the map yet, create a new vector for it
+        //If file path is not in the map yet, create a new vector it
         if (!fileLines.count(filePath)) {
             std::vector<int> newFile;
             newFile.push_back(lineNumber);

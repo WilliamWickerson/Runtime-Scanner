@@ -113,6 +113,12 @@ int main(int argc, char** argv) {
     std::vector<std::string> inputUses;
     std::vector<std::string> otherUses;
     
+    //JavaReader jr(projectPath + "/" + "frameworks/testing/uiautomator_test_libraries/src/com/android/uiautomator/platform/SurfaceFlingerHelper.java");    
+    //for (std::string s : jr.readFunctionNames())
+    //    std::cout << s << std::endl;
+    
+    //return 0;
+    
     //Iterate through all of the pairs in the grep map
     for (auto const& file : fileLines) {
         //file.first is the file path
